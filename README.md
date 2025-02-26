@@ -1,8 +1,57 @@
-# React + Vite
+# 🚀 Interactive Flowchart Application (Supervaisor AI Task)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is an **interactive flowchart application** built using **React Flow.**
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ⚙️ Features
+✔ **Create nodes dynamically**  
+✔ **Interactive flowchart with drag-and-drop**  
+✔ **Parent-child relationships for nodes**  
+✔ **Undo/Redo functionality for changes**  
+✔ **Delete all or any particular node**  
+✔ **Delete edges with a doubleclick**  
+
+---
+
+## 📥 Installation & Setup
+
+1️⃣ Clone the Repository
+```sh
+git clone https://github.com/Gauri211/-Supervaisor-Task.git
+cd Supervaisor-Task
+```
+2️⃣ Install Dependencies
+```sh
+npm install
+```
+
+3️⃣ Start the Development Server
+```sh
+npm run dev
+```
+This will start the app at http://localhost:5173/. 🎉
+
+## 🛠️ JSON Data Structure
+```json
+{
+  "nodes": [
+    {
+      "id": "1",
+      "type": "customNode",
+      "position": { "x": 100, "y": 100 },
+      "data": { "label": "Start Node" }
+    },
+    {
+      "id": "2",
+      "type": "customNode",
+      "position": { "x": 300, "y": 100 },
+      "data": { "label": "Next Step" }
+    }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "1", "target": "2", "animated": true }
+  ]
+}
+
+```
