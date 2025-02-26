@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -9,42 +9,47 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import CustomNode from "./CustomNode";
+import { initialNodes, initialEdges } from "../data/initialNodes";
 
-// Define nodeTypes outside of the component
 const nodeTypes = {
   customNode: CustomNode,
 };
 
-const initialNodes = [
-  {
-    id: '1',
-    data: { label: 'Project 0' },
-    position: { x: 0, y: 0 },
-    type: 'customNode',
-  },
-  {
-    id: '2',
-    data: { label: 'Planning' },
-    position: { x: -500, y: 100 },
-    type: 'customNode',
-  },
-  {
-    id: '3',
-    data: { label: 'Designing' },
-    position: { x: -300, y: 100 },
-    type: 'customNode',
-  },
-];
-
-const initialEdges = [
-  { id: '1-2', source: '1', target: '2', label: '1', type: 'step' },
-  { id: '1-3', source: '1', target: '3', label: '2', type: 'step' },
-];
-
 function FlowChart() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
-  const [parentNodeId, setParentNodeId] = useState(null);  // To track the parent node for connection
+  const [parentNodeId, setParentNodeId] = useState(null);
+  
+  // Undo/Redo State
+  const [history, setHistory] = useState([{ nodes: initialNodes, edges: initialEdges }]);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // Save history on every change
+  useEffect(() => {
+    if (currentStep < history.length - 1) {
+      setHistory(history.slice(0, currentStep + 1));
+    }
+    setHistory([...history, { nodes, edges }]);
+    setCurrentStep((prev) => prev + 1);
+  }, [nodes, edges]);
+
+  // Undo Function
+  const undo = () => {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+      setNodes(history[currentStep - 1].nodes);
+      setEdges(history[currentStep - 1].edges);
+    }
+  };
+
+  // Redo Function
+  const redo = () => {
+    if (currentStep < history.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+      setNodes(history[currentStep + 1].nodes);
+      setEdges(history[currentStep + 1].edges);
+    }
+  };
 
   // Add a new node
   const addNode = () => {
@@ -52,14 +57,12 @@ function FlowChart() {
     const newNode = {
       id: newNodeId,
       type: 'customNode',
-      position: { x: Math.random() * 400, y: Math.random() * 400 },
+      position: { x: Math.random() * 200, y: Math.random() * 200 },
       data: { label: `Node ${newNodeId}` },
     };
 
-    // Add the new node to the state
     setNodes((prev) => [...prev, newNode]);
 
-    // If there's a parent node selected, create an edge to it
     if (parentNodeId) {
       setEdges((prev) => [
         ...prev,
@@ -74,9 +77,14 @@ function FlowChart() {
     setEdges([]);
   };
 
-  // Handle setting the parent node
-  const selectParentNode = (nodeId) => {
-    setParentNodeId(nodeId);
+  // Delete an edge on double-click
+  const onEdgeDoubleClick = (event, edge) => {
+    event.stopPropagation();
+    handleEdgeDelete(edge.id);
+  };
+
+  const handleEdgeDelete = (edgeId) => {
+    setEdges((prevEdges) => prevEdges.filter((edge) => edge.id !== edgeId));
   };
 
   const onNodesChange = useCallback(
@@ -90,32 +98,20 @@ function FlowChart() {
   );
 
   const onConnect = useCallback((params) => {
+    if (params.source === params.target) {
+      console.log("Cannot connect node to itself.");
+      return; 
+    }
     setEdges((eds) => addEdge(params, eds));
   }, []);
 
-  // Handle deleting a node
-  const deleteNode = (nodeId) => {
-    setNodes((prev) => prev.filter((node) => node.id !== nodeId));
-    setEdges((prev) => prev.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-  };
-
-  // Update node label
-  const updateNodeLabel = (id, label) => {
-    setNodes((prev) =>
-      prev.map((node) =>
-        node.id === id ? { ...node, data: { ...node.data, label } } : node
-      )
-    );
-  };
-
   return (
     <div style={{ height: '100%' }}>
-      <div style={{ padding: '10px', background: '#f4f4f4', height: '100px' }}>
-        <button onClick={addNode}>Add Node</button>
-        <button onClick={clearNodes}>Clear All</button>
-        <div>
-          <label>Select Parent Node: </label>
-          <select onChange={(e) => selectParentNode(e.target.value)} value={parentNodeId || ''}>
+      <div className="toolbar">
+        {/* Select Parent Node */}
+        <div className="toolbar-group">
+          <label>Select Parent Node</label>
+          <select onChange={(e) => setParentNodeId(e.target.value)} value={parentNodeId || ''}>
             <option value="">None</option>
             {nodes.map((node) => (
               <option key={node.id} value={node.id}>
@@ -124,14 +120,23 @@ function FlowChart() {
             ))}
           </select>
         </div>
+
+        {/* Buttons */}
+        <button onClick={addNode} className="btn add-btn">Add Node</button>
+        <button onClick={clearNodes} className="btn clear-btn">Clear All</button>
+        <button onClick={undo} className="btn undo-btn" disabled={currentStep === 0}>Undo</button>
+        <button onClick={redo} className="btn redo-btn" disabled={currentStep >= history.length - 1}>Redo</button>
       </div>
+
+      {/* Flowchart */}
       <ReactFlow
         nodes={nodes}
         onNodesChange={onNodesChange}
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        nodeTypes={nodeTypes} // Pass nodeTypes here
+        nodeTypes={nodeTypes}
+        onEdgeDoubleClick={onEdgeDoubleClick}
         fitView
       >
         <Background />

@@ -4,3 +4,90 @@ body {
   font-family: sans-serif;
 }
  
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  gap: 10px;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-right: 20px;
+}
+
+.toolbar label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.toolbar select {
+  padding: 8px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.toolbar select:focus {
+  border-color: #4CAF50;
+}
+
+.btn {
+  padding: 10px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.add-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.add-btn:hover {
+  background: #45a049;
+}
+
+.clear-btn {
+  background: #FF6347;
+  color: white;
+}
+
+.clear-btn:hover {
+  background: #f44336;
+}
+
+.undo-btn {
+  background: #FFD700;
+  color: black;
+}
+
+.undo-btn:hover {
+  background: #EAC117;
+}
+
+.redo-btn {
+  background: #1E90FF;
+  color: white;
+}
+
+.redo-btn:hover {
+  background: #0074D9;
+}
+
+.btn:disabled {
+  background: #ddd;
+  cursor: not-allowed;
+}

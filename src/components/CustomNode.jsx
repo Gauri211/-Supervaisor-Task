@@ -1,14 +1,30 @@
-import React, { useState } from "react";
-import { Handle, Position } from "@xyflow/react";
+/* eslint-disable react/prop-types */
+import { useState } from "react";
+import { Handle, Position, useReactFlow } from "@xyflow/react";
 
-const CustomNode = ({ data, id, selected, deleteNode, updateNodeLabel }) => {
+const CustomNode = ({ data, id }) => {
   const [label, setLabel] = useState(data.label || "Node");
+  const { setNodes } = useReactFlow();
 
   // Handle label changes
   const handleLabelChange = (e) => {
-    setLabel(e.target.value);
-    updateNodeLabel(id, e.target.value);
+    const newLabel = e.target.value;
+    setLabel(newLabel); 
+    handleLabelChangeInState(newLabel); 
   };
+  
+  const handleLabelChangeInState = (label) => {
+    setNodes((prev) =>
+      prev.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, label } } : node
+      )
+    );
+  };
+  
+
+  const handleDelete = () => {
+    setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id))
+  }
 
   return (
     <div
@@ -18,12 +34,10 @@ const CustomNode = ({ data, id, selected, deleteNode, updateNodeLabel }) => {
         padding: "10px",
         borderRadius: "8px",
         border: "1px solid #ccc",
-        boxShadow: selected ? "0px 0px 10px rgba(0, 0, 0, 0.1)" : "none",
         width: "180px",
         textAlign: "center",
       }}
     >
-      {/* Editable label */}
       <input
         type="text"
         value={label}
@@ -31,9 +45,8 @@ const CustomNode = ({ data, id, selected, deleteNode, updateNodeLabel }) => {
         style={{ width: "100%", border: "none", textAlign: "center" }}
       />
       
-      {/* Delete Cross Icon */}
       <button
-        onClick={() => deleteNode(id)} // Now the deleteNode function works
+        onClick={handleDelete} 
         style={{
           position: "absolute",
           top: "5px",
@@ -48,7 +61,6 @@ const CustomNode = ({ data, id, selected, deleteNode, updateNodeLabel }) => {
         ✖
       </button>
 
-      {/* Node Handles */}
       <Handle type="target" position={Position.Top} style={{ borderRadius: "50%" }} />
       <Handle type="source" position={Position.Bottom} style={{ borderRadius: "50%" }} />
     </div>
