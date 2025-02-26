@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useState, useCallback } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -19,35 +20,33 @@ function FlowChart() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [parentNodeId, setParentNodeId] = useState(null);
-  
-  // Undo/Redo State
+
+  // History tracking for Undo/Redo
   const [history, setHistory] = useState([{ nodes: initialNodes, edges: initialEdges }]);
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Save history on every change
-  useEffect(() => {
-    if (currentStep < history.length - 1) {
-      setHistory(history.slice(0, currentStep + 1));
-    }
-    setHistory([...history, { nodes, edges }]);
-    setCurrentStep((prev) => prev + 1);
-  }, [nodes, edges]);
+  // Save the current state to history
+  const saveHistory = (newNodes, newEdges) => {
+    const updatedHistory = history.slice(0, currentStep + 1);
+    setHistory([...updatedHistory, { nodes: newNodes, edges: newEdges }]);
+    setCurrentStep(updatedHistory.length);
+  };
 
-  // Undo Function
+  // Undo Action
   const undo = () => {
     if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
       setNodes(history[currentStep - 1].nodes);
       setEdges(history[currentStep - 1].edges);
+      setCurrentStep(currentStep - 1);
     }
   };
 
-  // Redo Function
+  // Redo Action
   const redo = () => {
     if (currentStep < history.length - 1) {
-      setCurrentStep((prev) => prev + 1);
       setNodes(history[currentStep + 1].nodes);
       setEdges(history[currentStep + 1].edges);
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -57,58 +56,73 @@ function FlowChart() {
     const newNode = {
       id: newNodeId,
       type: 'customNode',
-      position: { x: Math.random() * 200, y: Math.random() * 200 },
+      position: { x: Math.random() * 400, y: Math.random() * 400 },
       data: { label: `Node ${newNodeId}` },
     };
 
-    setNodes((prev) => [...prev, newNode]);
+    const newNodes = [...nodes, newNode];
+    let newEdges = [...edges];
 
+    // Attach to parent if selected
     if (parentNodeId) {
-      setEdges((prev) => [
-        ...prev,
-        { id: `e${parentNodeId}-${newNodeId}`, source: parentNodeId, target: newNodeId, type: 'step' },
-      ]);
+      newEdges = [...newEdges, { id: `e${parentNodeId}-${newNodeId}`, source: parentNodeId, target: newNodeId, type: 'step' }];
     }
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    saveHistory(newNodes, newEdges); 
   };
 
   // Clear all nodes and edges
   const clearNodes = () => {
     setNodes([]);
     setEdges([]);
+    saveHistory([], []); 
   };
 
   // Delete an edge on double-click
   const onEdgeDoubleClick = (event, edge) => {
     event.stopPropagation();
-    handleEdgeDelete(edge.id);
-  };
-
-  const handleEdgeDelete = (edgeId) => {
-    setEdges((prevEdges) => prevEdges.filter((edge) => edge.id !== edgeId));
+    const newEdges = edges.filter((e) => e.id !== edge.id);
+    setEdges(newEdges);
+    saveHistory(nodes, newEdges); 
   };
 
   const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [],
+    (changes) => {
+      setNodes((nds) => {
+        const updatedNodes = applyNodeChanges(changes, nds);
+        saveHistory(updatedNodes, edges);
+        return updatedNodes;
+      });
+    },
+    [edges]
   );
 
   const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [],
+    (changes) => {
+      setEdges((eds) => {
+        const updatedEdges = applyEdgeChanges(changes, eds);
+        saveHistory(nodes, updatedEdges);
+        return updatedEdges;
+      });
+    },
+    [nodes]
   );
 
   const onConnect = useCallback((params) => {
     if (params.source === params.target) {
       console.log("Cannot connect node to itself.");
-      return; 
+      return;
     }
-    setEdges((eds) => addEdge(params, eds));
-  }, []);
+    const newEdges = addEdge(params, edges);
+    setEdges(newEdges);
+    saveHistory(nodes, newEdges); 
+  }, [nodes, edges]);
 
   return (
     <div style={{ height: '100%' }}>
       <div className="toolbar">
-        {/* Select Parent Node */}
         <div className="toolbar-group">
           <label>Select Parent Node</label>
           <select onChange={(e) => setParentNodeId(e.target.value)} value={parentNodeId || ''}>
@@ -121,14 +135,12 @@ function FlowChart() {
           </select>
         </div>
 
-        {/* Buttons */}
         <button onClick={addNode} className="btn add-btn">Add Node</button>
         <button onClick={clearNodes} className="btn clear-btn">Clear All</button>
         <button onClick={undo} className="btn undo-btn" disabled={currentStep === 0}>Undo</button>
         <button onClick={redo} className="btn redo-btn" disabled={currentStep >= history.length - 1}>Redo</button>
       </div>
 
-      {/* Flowchart */}
       <ReactFlow
         nodes={nodes}
         onNodesChange={onNodesChange}
